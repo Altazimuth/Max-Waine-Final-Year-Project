@@ -8,11 +8,13 @@
 #include "SDL.h"
 #include "SDL_opengl.h"
 
+#include "IL/il.h"
+
 #include "shader_fragment.h"
 #include "shader_vertex.h"
 
 // Screen dimension constants
-constexpr int SCREEN_WIDTH = 640;
+constexpr int SCREEN_WIDTH  = 640;
 constexpr int SCREEN_HEIGHT = 480;
 
 // The window we'll be rendering to
@@ -29,6 +31,10 @@ static GLuint gProgramID = 0;
 static GLint  gVertexPos2DLocation = -1;
 static GLuint gVBO = 0;
 static GLuint gIBO = 0;
+
+static ILint    linearheight;
+static ILint    linearwidth;
+static uint8_t *linearimage;
 
 // Shader loading utility programs
 
@@ -205,6 +211,23 @@ static bool initGL()
    return success;
 }
 
+static bool IL_init(const char *filename)
+{
+   ILuint ImgId = 0;
+   ilGenImages(1, &ImgId);
+   ilBindImage(ImgId);
+
+   ilLoadImage(filename);
+
+   linearwidth    = ilGetInteger(IL_IMAGE_WIDTH);
+   linearheight   = ilGetInteger(IL_IMAGE_HEIGHT);
+   uint8_t *image = new uint8_t[linearwidth * linearheight * 3];
+   ilCopyPixels(0, 0, 0, linearwidth, linearheight, 1, IL_RGB, IL_UNSIGNED_BYTE, linearimage);
+
+   ilBindImage(0);
+   ilDeleteImage(ImgId);
+}
+
 //
 // Starts up SDL, creates window, and initializes OpenGL
 //
@@ -227,7 +250,10 @@ static bool init()
       SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
       // Create window
-      gWindow = SDL_CreateWindow("C++ Raytracer Coursework Wrapper", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+      gWindow = SDL_CreateWindow("Max Waine Graphics Optics Coursework Final Year Project Word Salad",
+                                 SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                                 SCREEN_WIDTH, SCREEN_HEIGHT,
+                                 SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
       if(gWindow == nullptr)
       {
          printf("Window could not be created! SDL Error: %s\n", SDL_GetError());
@@ -341,9 +367,21 @@ static void close()
 
 int main(int argc, char *args[])
 {
+   // Load image into linear
+   if(argc < 0)
+   {
+      puts("There must be an argument and it must be the relative path to the loaded image!");
+      return -1;
+   }
+
+   IL_init(args[1]);
+
    // Start up SDL and create window
    if(!init())
-      printf("Failed to initialize!\n");
+   {
+      puts("Failed to initialize!");
+      return -1;
+   }
    else
    {
       // Main loop flag
