@@ -126,7 +126,6 @@ static bool initGL()
       // Attach vertex shader to program
       glAttachShader(gProgramID, vertexShader);
 
-
       // Create fragment shader
       GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
