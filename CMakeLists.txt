@@ -8,6 +8,8 @@ find_package(SDL2   REQUIRED)
 
 add_executable(raytracer
     source/main.cpp
+    source/shader_fragment.h
+    source/shader_vertex.h
 )
 
 target_link_libraries(raytracer PRIVATE

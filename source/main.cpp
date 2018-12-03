@@ -1,4 +1,4 @@
-// TODO: Licence (probably GPL)
+// TODO: Actually put proper header here
 
 #include <cstdio>
 #include <fstream>
@@ -10,6 +10,9 @@
 
 #include "SDL.h"
 #include "SDL_opengl.h"
+
+#include "shader_fragment.h"
+#include "shader_vertex.h"
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 640;
@@ -106,14 +109,8 @@ bool initGL()
    //Create vertex shader
    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
 
-   //Get vertex source
-   const GLchar *vertexShaderSource[] =
-   {
-      "#version 140\nin vec2 LVertexPos2D; void main() { gl_Position = vec4(LVertexPos2D.x, LVertexPos2D.y, 0, 1); }"
-   };
-
    //Set vertex source
-   glShaderSource(vertexShader, 1, vertexShaderSource, nullptr);
+   glShaderSource(vertexShader, 1, &shader_source_vertex, nullptr);
 
    //Compile vertex source
    glCompileShader(vertexShader);
@@ -136,16 +133,8 @@ bool initGL()
       //Create fragment shader
       GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
 
-      //Get fragment source
-      std::ifstream stream("../source/shader.glsl");
-      std::stringstream buffer;
-      buffer << stream.rdbuf();
-      std::string tempstr = buffer.str();
-      const GLchar *fragmentShaderSource = tempstr.c_str();
-      //puts(fragmentShaderSource);
-
       //Set fragment source
-      glShaderSource(fragmentShader, 1, &fragmentShaderSource, nullptr);
+      glShaderSource(fragmentShader, 1, &shader_source_fragment, nullptr);
 
       //Compile fragment source
       glCompileShader(fragmentShader);
