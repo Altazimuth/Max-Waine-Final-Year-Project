@@ -211,7 +211,7 @@ static bool initGL()
    return success;
 }
 
-static bool IL_init(const char *filename)
+static void IL_init(const char *filename)
 {
    ILuint ImgId = 0;
    ilGenImages(1, &ImgId);
@@ -361,7 +361,7 @@ static void close()
 }
 
 // FIXME: This
-#ifdef _MSC_VER && !defined(_WIN32_WCE)
+#if defined(_MSC_VER) && !defined(_WIN32_WCE)
 #undef main
 #endif
 
