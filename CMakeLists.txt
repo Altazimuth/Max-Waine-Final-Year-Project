@@ -18,6 +18,7 @@ target_link_libraries(mwcoursework PRIVATE
     ${OPENGL_LIBRARIES}
     ${GLEW_LIBRARIES}
     ${IL_LIBRARIES}
+    ${ILU_LIBRARIES}
 )
 
 target_include_directories(mwcoursework SYSTEM PRIVATE
