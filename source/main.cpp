@@ -23,7 +23,7 @@ constexpr int SCREEN_HEIGHT = 480;
 static SDL_Window *window = nullptr;
 
 // OpenGL context
-static SDL_GLContext gContext;
+static SDL_GLContext context;
 
 // Render flag
 static bool renderQuad = true;
@@ -33,6 +33,7 @@ static GLuint programID           =  0;
 static GLint  vertexPos2DLocation = -1;
 static GLuint VBO                 =  0;
 static GLuint IBO                 =  0;
+static GLuint FBO                 =  0;
 
 static ILint    linearheight;
 static ILint    linearwidth;
@@ -96,6 +97,10 @@ static GLuint IL_loadImage(const char *filename)
                    ilGetInteger(IL_IMAGE_FORMAT),  // Format of image pixel data
                    GL_UNSIGNED_BYTE,               // Image data type
                    ilGetData());                   // The actual image data itself
+
+      // Requires OpenGL 4.2 or later, which is a bit much
+      //glTexStorage2D(GL_TEXTURE_2D, 1, ilGetInteger(IL_IMAGE_FORMAT),
+      //               ilGetInteger(IL_IMAGE_WIDTH), ilGetInteger(IL_IMAGE_HEIGHT));
    }
    else // If we failed to open the image file in the first place...
    {
@@ -278,6 +283,11 @@ static bool initGL()
                glGenBuffers(1, &IBO);
                glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
                glBufferData(GL_ELEMENT_ARRAY_BUFFER, 4 * sizeof(GLuint), indexData, GL_STATIC_DRAW);
+
+               glGenFramebuffers(1, &FBO);
+               glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
+               glFramebufferTexture2D(GL_READ_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, imageTexID, 0);
+               glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
             }
          }
       }
@@ -329,8 +339,8 @@ static bool init()
       else
       {
          // Create context
-         gContext = SDL_GL_CreateContext(window);
-         if(gContext == nullptr)
+         context = SDL_GL_CreateContext(window);
+         if(context == nullptr)
          {
             printf("OpenGL context could not be created! SDL Error: %s\n", SDL_GetError());
             success = false;
@@ -375,7 +385,10 @@ static void handleKeys(unsigned char key, int x, int y)
 //
 static void update()
 {
-   // No per frame update needed
+   // Copy texture to default framebuffer
+   glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
+   glBlitFramebuffer(0, 0, 480, 640, 0, 0, 480, 640, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+   glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 }
 
 //
@@ -384,7 +397,7 @@ static void update()
 static void render()
 {
    // Clear color buffer
-   glClear(GL_COLOR_BUFFER_BIT);
+   //glClear(GL_COLOR_BUFFER_BIT);
 
    // Render quad
    if(renderQuad)
@@ -441,10 +454,6 @@ int main(int argc, char *argv[])
       return -1;
    }
 
-   IL_init();
-
-   imageTexID = IL_loadImage(argv[1]);
-
    // Start up SDL and create window
    if(!init())
    {
@@ -453,6 +462,9 @@ int main(int argc, char *argv[])
    }
    else
    {
+      IL_init();
+      imageTexID = IL_loadImage(argv[1]);
+
       // Main loop flag
       bool quit = false;
 
@@ -479,6 +491,8 @@ int main(int argc, char *argv[])
                handleKeys(e.text.text[ 0 ], x, y);
             }
          }
+
+         update();
 
          // Render quad
          render();
