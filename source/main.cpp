@@ -20,25 +20,27 @@ constexpr int SCREEN_WIDTH  = 640;
 constexpr int SCREEN_HEIGHT = 480;
 
 // The window we'll be rendering to
-static SDL_Window *gWindow = nullptr;
+static SDL_Window *window = nullptr;
 
 // OpenGL context
 static SDL_GLContext gContext;
 
 // Render flag
-static bool gRenderQuad = true;
+static bool renderQuad = true;
 
 // Graphics program
-static GLuint gProgramID = 0;
-static GLint  gVertexPos2DLocation = -1;
-static GLuint gVBO = 0;
-static GLuint gIBO = 0;
+static GLuint programID           =  0;
+static GLint  vertexPos2DLocation = -1;
+static GLuint VBO                 =  0;
+static GLuint IBO                 =  0;
 
 static ILint    linearheight;
 static ILint    linearwidth;
 static uint8_t *linearimage;
 
-static GLuint IL_loadImage(const char* theFileName)
+static GLuint imageTexID = 0;
+
+static GLuint IL_loadImage(const char *filename)
 {
    ILuint imageID;    // Create an image ID as a ULuint
    GLuint textureID;  // Create a texture ID as a GLuint
@@ -47,7 +49,7 @@ static GLuint IL_loadImage(const char* theFileName)
 
    ilGenImages(1, &imageID);           // Generate the image ID
    ilBindImage(imageID);               // Bind the image
-   success = ilLoadImage(theFileName); // Load the image file
+   success = ilLoadImage(filename); // Load the image file
 
    // If we managed to load the image, then we can start to do things with it...
    if(success)
@@ -180,7 +182,7 @@ static bool initGL()
    bool success = true;
 
    // Generate program
-   gProgramID = glCreateProgram();
+   programID = glCreateProgram();
 
    // Create vertex shader
    GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
@@ -203,7 +205,7 @@ static bool initGL()
    else
    {
       // Attach vertex shader to program
-      glAttachShader(gProgramID, vertexShader);
+      glAttachShader(programID, vertexShader);
 
       // Create fragment shader
       GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
@@ -226,34 +228,34 @@ static bool initGL()
       else
       {
          // Attach fragment shader to program
-         glAttachShader(gProgramID, fragmentShader);
+         glAttachShader(programID, fragmentShader);
 
 
          // Link program
-         glLinkProgram(gProgramID);
+         glLinkProgram(programID);
 
          // Check for errors
          GLint programSuccess = GL_TRUE;
-         glGetProgramiv(gProgramID, GL_LINK_STATUS, &programSuccess);
+         glGetProgramiv(programID, GL_LINK_STATUS, &programSuccess);
          if(programSuccess != GL_TRUE)
          {
-            printf("Error linking program %d!\n", gProgramID);
-            printProgramLog(gProgramID);
+            printf("Error linking program %d!\n", programID);
+            printProgramLog(programID);
             success = false;
          }
          else
          {
             // Get vertex attribute location
-            gVertexPos2DLocation = glGetAttribLocation(gProgramID, "LVertexPos2D");
-            if(gVertexPos2DLocation == -1)
+            vertexPos2DLocation = glGetAttribLocation(programID, "LVertexPos2D");
+            if(vertexPos2DLocation == -1)
             {
-               printf("LVertexPos2D is not a valid glsl program variable!\n");
+               printf("LVertexPos2D is not a valid GLSL program variable!\n");
                success = false;
             }
             else
             {
                // Initialize clear color
-               glClearColor(0.f, 0.f, 0.f, 1.f);
+               glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
 
                // VBO data
                GLfloat vertexData[] =
@@ -268,13 +270,13 @@ static bool initGL()
                GLuint indexData[] = { 0, 1, 2, 3 };
 
                // Create VBO
-               glGenBuffers(1, &gVBO);
-               glBindBuffer(GL_ARRAY_BUFFER, gVBO);
+               glGenBuffers(1, &VBO);
+               glBindBuffer(GL_ARRAY_BUFFER, VBO);
                glBufferData(GL_ARRAY_BUFFER, 2 * 4 * sizeof(GLfloat), vertexData, GL_STATIC_DRAW);
 
                // Create IBO
-               glGenBuffers(1, &gIBO);
-               glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIBO);
+               glGenBuffers(1, &IBO);
+               glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
                glBufferData(GL_ELEMENT_ARRAY_BUFFER, 4 * sizeof(GLuint), indexData, GL_STATIC_DRAW);
             }
          }
@@ -315,11 +317,11 @@ static bool init()
       SDL_GL_SetAttribute(SDL_GL_CONTEXT_PROFILE_MASK, SDL_GL_CONTEXT_PROFILE_CORE);
 
       // Create window
-      gWindow = SDL_CreateWindow("Max Waine Graphics Optics Coursework Final Year Project Word Salad",
-                                 SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-                                 SCREEN_WIDTH, SCREEN_HEIGHT,
-                                 SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
-      if(gWindow == nullptr)
+      window = SDL_CreateWindow("Max Waine Graphics Optics Coursework Final Year Project Word Salad",
+                                SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+                                SCREEN_WIDTH, SCREEN_HEIGHT,
+                                SDL_WINDOW_OPENGL | SDL_WINDOW_SHOWN);
+      if(window == nullptr)
       {
          printf("Window could not be created! SDL Error: %s\n", SDL_GetError());
          success = false;
@@ -327,7 +329,7 @@ static bool init()
       else
       {
          // Create context
-         gContext = SDL_GL_CreateContext(gWindow);
+         gContext = SDL_GL_CreateContext(window);
          if(gContext == nullptr)
          {
             printf("OpenGL context could not be created! SDL Error: %s\n", SDL_GetError());
@@ -365,7 +367,7 @@ static void handleKeys(unsigned char key, int x, int y)
 {
    // Toggle quad
    if(key == 'q')
-      gRenderQuad = !gRenderQuad;
+      renderQuad = !renderQuad;
 }
 
 //
@@ -385,24 +387,24 @@ static void render()
    glClear(GL_COLOR_BUFFER_BIT);
 
    // Render quad
-   if(gRenderQuad)
+   if(renderQuad)
    {
       // Bind program
-      glUseProgram(gProgramID);
+      glUseProgram(programID);
 
       // Enable vertex position
-      glEnableVertexAttribArray(gVertexPos2DLocation);
+      glEnableVertexAttribArray(vertexPos2DLocation);
 
       // Set vertex data
-      glBindBuffer(GL_ARRAY_BUFFER, gVBO);
-      glVertexAttribPointer(gVertexPos2DLocation, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
+      glBindBuffer(GL_ARRAY_BUFFER, VBO);
+      glVertexAttribPointer(vertexPos2DLocation, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(GLfloat), nullptr);
 
       // Set index data and render
-      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, gIBO);
+      glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, IBO);
       glDrawElements(GL_TRIANGLE_FAN, 4, GL_UNSIGNED_INT, nullptr);
 
       // Disable vertex position
-      glDisableVertexAttribArray(gVertexPos2DLocation);
+      glDisableVertexAttribArray(vertexPos2DLocation);
 
       // Unbind program
       glUseProgram(NULL);
@@ -415,11 +417,11 @@ static void render()
 static void close()
 {
    // Deallocate program
-   glDeleteProgram(gProgramID);
+   glDeleteProgram(programID);
 
    // Destroy window
-   SDL_DestroyWindow(gWindow);
-   gWindow = nullptr;
+   SDL_DestroyWindow(window);
+   window = nullptr;
 
    // Quit SDL subsystems
    SDL_Quit();
@@ -441,7 +443,7 @@ int main(int argc, char *argv[])
 
    IL_init();
 
-   IL_loadImage(argv[1]);
+   imageTexID = IL_loadImage(argv[1]);
 
    // Start up SDL and create window
    if(!init())
@@ -482,7 +484,7 @@ int main(int argc, char *argv[])
          render();
 
          // Update screen
-         SDL_GL_SwapWindow(gWindow);
+         SDL_GL_SwapWindow(window);
       }
 
       // Disable text input
