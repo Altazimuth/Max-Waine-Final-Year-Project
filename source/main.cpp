@@ -387,7 +387,7 @@ static void update()
 {
    // Copy texture to default framebuffer
    glBindFramebuffer(GL_READ_FRAMEBUFFER, FBO);
-   glBlitFramebuffer(0, 0, 480, 640, 0, 0, 480, 640, GL_COLOR_BUFFER_BIT, GL_LINEAR);
+   glBlitFramebuffer(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, GL_COLOR_BUFFER_BIT, GL_LINEAR);
    glBindFramebuffer(GL_READ_FRAMEBUFFER, 0);
 }
 
